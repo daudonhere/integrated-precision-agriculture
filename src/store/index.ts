@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 
 interface AppState {
-  // Contoh state - bisa disesuaikan dengan kebutuhan proyek
   count: number
   setCount: (count: number) => void
   increment: () => void

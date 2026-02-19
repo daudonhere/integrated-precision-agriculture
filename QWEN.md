@@ -2,9 +2,23 @@
 
 ## Project Overview
 
-A Next.js 16 application for precision agriculture solutions. Built with modern React patterns and TypeScript, this project uses the App Router architecture with server-side rendering capabilities.
+A full-stack precision agriculture solution combining IoT sensor nodes with a modern Next.js web dashboard. The system monitors farm conditions (temperature, humidity, soil moisture, pH, NPK levels, water supply) using ESP32-based sensor nodes and publishes data via MQTT for real-time visualization and anomaly detection.
 
-### Technology Stack
+### Development Roadmap (FASE.md)
+
+| Phase | Focus | Technologies |
+|-------|-------|--------------|
+| 1 | IoT Prototype | ESP32, NPK/pH/Moisture Sensors, Wokwi (simulation) |
+| 2 | Dashboard & Maps | Node-RED/React, Leaflet.js, OpenStreetMap |
+| 3 | Intelligence | Python (Flask/FastAPI), ML Models, OpenWeather API |
+| 4 | Logistics | OpenRouteService API integration |
+| 5 | Web3 Integration | Solidity (Smart Contract), Ethers.js, IPFS (NFT metadata) |
+
+---
+
+## Technology Stack
+
+### Web Application (Next.js)
 
 - **Framework:** Next.js 16.1.6 (App Router)
 - **Language:** TypeScript 5
@@ -14,25 +28,62 @@ A Next.js 16 application for precision agriculture solutions. Built with modern 
 - **Fonts:** Geist Sans & Geist Mono (via `next/font`)
 - **Linting:** ESLint 9 with Next.js configs
 
-### Project Structure
+### IoT Node (ESP32)
+
+- **Platform:** PlatformIO (ESP32 Arduino framework)
+- **Board:** ESP32-S3-DevKitC-1
+- **Communication:** WiFi + MQTT (HiveMQ broker)
+- **Sensors:**
+  - DHT22 (temperature & humidity)
+  - Soil moisture sensor
+  - pH sensor
+  - NPK sensor
+  - Ultrasonic sensor (water level)
+- **Output:** LCD (I2C), RGB LED indicator, Buzzer
+- **Libraries:** ArduinoJson, LiquidCrystal_I2C, PubSubClient, DHT sensor library
+
+---
+
+## Project Structure
 
 ```
-src/
-├── app/                 # Next.js App Router pages and layouts
-│   ├── globals.css      # Global styles with Tailwind
-│   ├── layout.tsx       # Root layout component
-│   └── page.tsx         # Home page component
-└── store/
-    └── index.ts         # Zustand state management store
+integrated-precision-agriculture/
+├── src/                      # Next.js application source
+│   ├── app/                  # App Router pages & layouts
+│   │   ├── globals.css       # Global styles with Tailwind
+│   │   ├── layout.tsx        # Root layout component
+│   │   └── page.tsx          # Home page component
+│   └── store/
+│       └── index.ts          # Zustand state management store
+├── smartfarm-node/           # ESP32 IoT firmware (PlatformIO)
+│   ├── src/
+│   │   └── main.cpp          # Main firmware code
+│   ├── include/              # Header files
+│   ├── lib/                  # Local libraries
+│   ├── test/                 # Unit tests
+│   ├── platformio.ini        # PlatformIO configuration
+│   ├── diagram.json          # Wokwi circuit diagram
+│   └── wokwi.toml            # Wokwi simulation config
+├── public/                   # Static assets
+├── package.json              # Node.js dependencies & scripts
+├── tsconfig.json             # TypeScript configuration
+├── next.config.ts            # Next.js configuration
+├── eslint.config.mjs         # ESLint flat config
+├── postcss.config.mjs        # PostCSS configuration
+└── FASE.md                   # Development roadmap
 ```
 
 ### Path Aliases
 
 - `@/*` resolves to `./src/*` (configured in `tsconfig.json`)
 
+---
+
 ## Building and Running
 
-### Development
+### Web Application
+
+#### Development
 
 ```bash
 npm run dev
@@ -40,20 +91,41 @@ npm run dev
 
 Starts the Next.js development server on `http://localhost:3000`.
 
-### Production Build
+#### Production Build
 
 ```bash
 npm run build    # Build for production
 npm run start    # Start production server
 ```
 
-### Linting
+#### Linting
 
 ```bash
 npm run lint
 ```
 
-Runs ESLint with Next.js core web vitals and TypeScript configurations.
+### IoT Firmware (smartfarm-node)
+
+Requires PlatformIO CLI or VS Code PlatformIO extension.
+
+```bash
+# Build firmware
+pio run
+
+# Upload to device
+pio run --target upload
+
+# Start serial monitor
+pio device monitor --speed 115200
+
+# Run tests
+pio test
+
+# Start Wokwi simulation (if wokwi-cli installed)
+wokwi-server
+```
+
+---
 
 ## Development Conventions
 
@@ -71,11 +143,11 @@ Runs ESLint with Next.js core web vitals and TypeScript configurations.
 - Extends `eslint-config-next` for:
   - Core Web Vitals compliance
   - TypeScript rules
-- Custom ignores in `eslint.config.mjs` (overrides default Next.js ignores)
+- Custom ignores in `eslint.config.mjs`
 
 ### Styling
 
-- Tailwind CSS 4 with new `@theme inline` directive
+- Tailwind CSS 4 with `@tailwindcss/postcss` plugin
 - CSS custom properties for theming
 - Dark mode support via `prefers-color-scheme`
 - Font variables: `--font-geist-sans`, `--font-geist-mono`
@@ -93,7 +165,45 @@ Runs ESLint with Next.js core web vitals and TypeScript configurations.
 - Responsive design with Tailwind utility classes
 - Dark mode support throughout
 
+### IoT Code Structure
+
+- Modular function design (`readSensors`, `checkHealth`, `updateLCD`, `publishData`)
+- Non-blocking sensor reading (3-second intervals via `millis()`)
+- MQTT auto-reconnect with status feedback
+- Real-time LCD display updates
+- Anomaly detection with LED/buzzer alerts
+
+---
+
+## MQTT Data Format
+
+The ESP32 node publishes JSON data to `daud/smartfarm/data`:
+
+```json
+{
+  "id": "NODE-01",
+  "ts": 1234567890,
+  "lat": -6.92148,
+  "lon": 106.92617,
+  "message": "System Normal",
+  "payload": {
+    "temp": 28.5,
+    "hum": 65.0,
+    "moist": 55,
+    "ph": 6.8,
+    "n": 200,
+    "p": 160,
+    "k": 100,
+    "water": 25
+  }
+}
+```
+
+---
+
 ## Deployment
+
+### Web Application
 
 Deploy via Vercel (recommended) or any Node.js hosting platform:
 
@@ -106,6 +216,14 @@ Or build and run the production server:
 ```bash
 npm run build && npm run start
 ```
+
+### IoT Firmware
+
+- Flash compiled `.bin` from `.pio/build/esp32-s3-devkitc-1/` to ESP32 device
+- Configure WiFi credentials in `src/main.cpp` before deployment
+- MQTT broker: `broker.hivemq.com:1883` (public HiveMQ broker)
+
+---
 
 ## Environment
 

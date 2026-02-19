@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "author": "Dade Daud Yusup",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-s3-devkitc-1",
+      "id": "esp",
+      "top": 172.62,
+      "left": 148.57,
+      "attrs": { "flashSize": "8" }
+    },
+    {
+      "type": "wokwi-lcd2004",
+      "id": "lcd1",
+      "top": 112,
+      "left": 303.2,
+      "attrs": { "pins": "i2c" }
+    },
+    { "type": "wokwi-dht22", "id": "dht1", "top": 67.5, "left": 13.8, "attrs": {} },
+    { "type": "wokwi-hc-sr04", "id": "ultrasonic1", "top": 241.5, "left": -100.1, "attrs": {} },
+    {
+      "type": "wokwi-slide-potentiometer",
+      "id": "pot1",
+      "top": 504.2,
+      "left": 104.6,
+      "attrs": { "travelLength": "30" }
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "bz1",
+      "top": 309.6,
+      "left": 309,
+      "attrs": { "volume": "0.1" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led1",
+      "top": 409.2,
+      "left": -53.8,
+      "attrs": { "color": "red" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 445.55,
+      "left": 0,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led2",
+      "top": 457.2,
+      "left": -53.8,
+      "attrs": { "color": "green" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r2",
+      "top": 493.55,
+      "left": 0,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-slide-potentiometer",
+      "id": "pot2",
+      "top": 590.6,
+      "left": 104.6,
+      "attrs": { "travelLength": "30" }
+    },
+    {
+      "type": "wokwi-slide-potentiometer",
+      "id": "pot3",
+      "top": 677,
+      "left": 104.6,
+      "attrs": { "travelLength": "30" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "text1",
+      "top": 547.2,
+      "left": 355.2,
+      "attrs": { "text": "Soil Moisture" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "text2",
+      "top": 633.6,
+      "left": 355.2,
+      "attrs": { "text": "Soil pH" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "text3",
+      "top": 710.4,
+      "left": 355.2,
+      "attrs": { "text": "Soil NPK" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "text4",
+      "top": 240,
+      "left": -201.6,
+      "attrs": { "text": "Watter Level" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "text6",
+      "top": 86.4,
+      "left": -182.4,
+      "attrs": { "text": "Temperature & Humidity" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "lcd1:GND", "esp:GND.2", "black", [ "h-57.6", "v57.6" ] ],
+    [ "lcd1:VCC", "esp:5V", "red", [ "h-182.4", "v19.3" ] ],
+    [ "lcd1:SDA", "esp:2", "green", [ "h-38.4", "v105.8" ] ],
+    [ "lcd1:SCL", "esp:1", "blue", [ "h-48", "v9.9" ] ],
+    [ "dht1:VCC", "esp:3V3.1", "red", [ "v19.2", "h57.6" ] ],
+    [ "dht1:SDA", "esp:10", "green", [ "v9.6", "h96.1", "v153.6" ] ],
+    [ "dht1:GND", "esp:GND.1", "black", [ "h86.4", "v220.8" ] ],
+    [ "ultrasonic1:VCC", "esp:5V", "red", [ "v57.6" ] ],
+    [ "ultrasonic1:TRIG", "esp:17", "yellow", [ "v48", "h153.2", "v-96" ] ],
+    [ "ultrasonic1:ECHO", "esp:18", "green", [ "v38.4", "h143.2", "v-76.8" ] ],
+    [ "ultrasonic1:GND", "esp:GND.1", "black", [ "v28.8", "h142.8", "v38.4" ] ],
+    [ "led1:A", "r1:1", "red", [ "v0" ] ],
+    [ "r1:2", "esp:12", "red", [ "v0", "h46.8", "v-86.4" ] ],
+    [ "led1:C", "esp:GND.4", "black", [ "v9.6", "h269.2", "v-57.6" ] ],
+    [ "led2:A", "r2:1", "red", [ "v0" ] ],
+    [ "r2:2", "esp:13", "red", [ "v0", "h46.8", "v-124.8" ] ],
+    [ "led2:C", "esp:GND.4", "black", [ "v9.6", "h269.2", "v-105.6" ] ],
+    [ "bz1:1", "esp:GND.3", "black", [ "v0", "h-48", "v-105.6" ] ],
+    [ "bz1:2", "esp:14", "red", [ "v86.4", "h-202", "v-96", "h9.65" ] ],
+    [ "pot1:GND", "esp:GND.3", "black", [ "h14.8", "v-153.6" ] ],
+    [ "pot1:VCC", "esp:3V3.2", "red", [ "h-9.6", "v-336" ] ],
+    [ "pot1:SIG", "esp:5", "yellow", [ "h-19.2", "v-327.2" ] ],
+    [ "pot2:GND", "esp:GND.3", "black", [ "h14.8", "v-240" ] ],
+    [ "pot2:VCC", "esp:3V3.2", "red", [ "h-9.6", "v-422.4" ] ],
+    [ "pot2:SIG", "esp:6", "yellow", [ "h-19.2", "v-404" ] ],
+    [ "pot3:GND", "esp:GND.3", "black", [ "h14.8", "v-326.4" ] ],
+    [ "pot3:VCC", "esp:3V3.2", "red", [ "h-9.6", "v-384", "h0", "v-124.8" ] ],
+    [ "esp:7", "pot3:SIG", "yellow", [ "h-67.25", "v480" ] ]
+  ],
+  "dependencies": {}
+}

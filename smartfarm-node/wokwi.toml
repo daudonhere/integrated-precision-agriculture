@@ -1,0 +1,8 @@
+[wokwi]
+version = 1
+firmware = ".pio/build/esp32-s3-devkitc-1/firmware.elf"
+elf = ".pio/build/esp32-s3-devkitc-1/firmware.elf"
+bin = ".pio/build/esp32-s3-devkitc-1/firmware.bin"
+hex = ".pio/build/esp32-s3-devkitc-1/firmware.hex"
+map = ".pio/build/esp32-s3-devkitc-1/firmware.map"
+json = ".pio/build/esp32-s3-devkitc-1/firmware.json"

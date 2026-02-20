@@ -18,6 +18,7 @@ export function ProgressBar({ label, value, max, unit, color }: ProgressBarProps
     purple: 'bg-purple-500',
     cyan: 'bg-cyan-500',
     yellow: 'bg-yellow-500',
+    red: 'bg-red-500',
   };
 
   return (

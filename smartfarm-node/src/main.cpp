@@ -21,7 +21,8 @@
 
 const char* ssid = "Wokwi-GUEST";
 const char* password = "";
-const char* mqtt_server = "broker.hivemq.com";
+const char* mqtt_server = "broker.emqx.io";
+const int mqtt_port = 1883;
 const char* mqtt_topic = "daud/smartfarm/data";
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);
@@ -65,7 +66,7 @@ void setup() {
 
   dht.begin();
   setup_wifi();
-  client.setServer(mqtt_server, 1883);
+  client.setServer(mqtt_server, mqtt_port);
 }
 
 void loop() {

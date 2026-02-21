@@ -25,6 +25,9 @@ A full-stack precision agriculture solution combining IoT sensor nodes with a mo
 - **UI Library:** React 19.2.3
 - **Styling:** Tailwind CSS 4 with PostCSS
 - **State Management:** Zustand 5.0.11
+- **MQTT Client:** mqtt 5.15.0 (WebSocket connection to HiveMQ)
+- **Maps:** Leaflet 1.9.4 with react-leaflet 5.0.0
+- **Visualization:** react-konva 19.2.2, konva 10.2.0
 - **Fonts:** Geist Sans & Geist Mono (via `next/font`)
 - **Linting:** ESLint 9 with Next.js configs
 
@@ -50,11 +53,32 @@ A full-stack precision agriculture solution combining IoT sensor nodes with a mo
 integrated-precision-agriculture/
 ├── src/                      # Next.js application source
 │   ├── app/                  # App Router pages & layouts
+│   │   ├── (app)/            # Main app layout with sidebar
+│   │   │   ├── dashboard/    # Overview dashboard
+│   │   │   ├── realtime/     # Real-time monitoring
+│   │   │   ├── map/          # Land monitoring map
+│   │   │   ├── devices/      # Device management
+│   │   │   ├── soil/         # Soil analysis
+│   │   │   ├── harvest/      # Harvest prediction
+│   │   │   ├── blockchain/   # Web3 integration
+│   │   │   └── settings/     # App settings
 │   │   ├── globals.css       # Global styles with Tailwind
 │   │   ├── layout.tsx        # Root layout component
-│   │   └── page.tsx          # Home page component
-│   └── store/
-│       └── index.ts          # Zustand state management store
+│   │   └── page.tsx          # Home page (redirects to /dashboard)
+│   ├── components/           # Reusable React components
+│   │   ├── Sidebar.tsx       # Navigation sidebar
+│   │   ├── SensorCard.tsx    # Sensor display card
+│   │   ├── StatusBadge.tsx   # Status indicator
+│   │   ├── ProgressBar.tsx   # Progress bar component
+│   │   └── MapComponent.tsx  # Leaflet map component
+│   ├── hooks/                # Custom React hooks
+│   │   └── useMqtt.ts        # MQTT connection hook
+│   ├── lib/                  # Utility libraries
+│   │   └── mqtt.ts           # MQTT client utilities
+│   ├── store/                # Zustand state management
+│   │   └── index.ts          # Global state store
+│   └── types/                # TypeScript type definitions
+│       └── sensor.ts         # Sensor data interfaces
 ├── smartfarm-node/           # ESP32 IoT firmware (PlatformIO)
 │   ├── src/
 │   │   └── main.cpp          # Main firmware code
@@ -63,7 +87,8 @@ integrated-precision-agriculture/
 │   ├── test/                 # Unit tests
 │   ├── platformio.ini        # PlatformIO configuration
 │   ├── diagram.json          # Wokwi circuit diagram
-│   └── wokwi.toml            # Wokwi simulation config
+│   ├── wokwi.toml            # Wokwi simulation config
+│   └── README.md             # Firmware documentation
 ├── public/                   # Static assets
 ├── package.json              # Node.js dependencies & scripts
 ├── tsconfig.json             # TypeScript configuration
@@ -82,6 +107,17 @@ integrated-precision-agriculture/
 ## Building and Running
 
 ### Web Application
+
+#### Prerequisites
+
+- Node.js 20+
+- npm, yarn, pnpm, or bun
+
+#### Installation
+
+```bash
+npm install
+```
 
 #### Development
 
@@ -106,7 +142,12 @@ npm run lint
 
 ### IoT Firmware (smartfarm-node)
 
-Requires PlatformIO CLI or VS Code PlatformIO extension.
+#### Prerequisites
+
+- PlatformIO CLI or VS Code PlatformIO extension
+- Wokwi Simulator extension (for simulation)
+
+#### Commands
 
 ```bash
 # Build firmware
@@ -121,9 +162,15 @@ pio device monitor --speed 115200
 # Run tests
 pio test
 
-# Start Wokwi simulation (if wokwi-cli installed)
-wokwi-server
+# Clean build files
+pio run --target clean
 ```
+
+#### Wokwi Simulation
+
+1. Open `smartfarm-node/diagram.json` in VSCode
+2. Click **"Start Simulation"** button
+3. View serial output for MQTT data
 
 ---
 
@@ -161,7 +208,7 @@ wokwi-server
 ### Component Patterns
 
 - Server Components by default (App Router)
-- Client Components when hooks/state needed
+- Client Components (`'use client'`) when hooks/state needed
 - Responsive design with Tailwind utility classes
 - Dark mode support throughout
 
@@ -199,6 +246,45 @@ The ESP32 node publishes JSON data to `daud/smartfarm/data`:
 }
 ```
 
+### Field Descriptions
+
+| Field | Type | Unit | Description |
+|-------|------|------|-------------|
+| `id` | String | - | Node identifier |
+| `ts` | Integer | ms | Timestamp (millis) |
+| `lat` | Float | - | Latitude coordinate |
+| `lon` | Float | - | Longitude coordinate |
+| `message` | String | - | Status message |
+| `payload.temp` | Float | °C | Air temperature |
+| `payload.hum` | Float | % | Air humidity |
+| `payload.moist` | Integer | % | Soil moisture |
+| `payload.ph` | Float | - | Soil pH |
+| `payload.n` | Integer | ppm | Nitrogen |
+| `payload.p` | Integer | ppm | Phosphorus |
+| `payload.k` | Integer | ppm | Potassium |
+| `payload.water` | Integer | cm | Water level (ultrasonic) |
+
+### MQTT Brokers
+
+- **Web Dashboard:** `wss://broker.emqx.io:8084/mqtt` (WebSocket)
+- **ESP32 Firmware:** `broker.hivemq.com:1883` (TCP)
+
+---
+
+## Application Routes
+
+| Route | Description |
+|-------|-------------|
+| `/` | Redirects to `/dashboard` |
+| `/dashboard` | Overview with sensor cards and status |
+| `/realtime` | Real-time sensor monitoring |
+| `/map` | Land monitoring with Leaflet maps |
+| `/devices` | IoT device management |
+| `/soil` | Soil analysis and nutrient tracking |
+| `/harvest` | Harvest prediction and tracking |
+| `/blockchain` | Web3/NFT integration |
+| `/settings` | Application settings |
+
 ---
 
 ## Deployment
@@ -230,3 +316,15 @@ npm run build && npm run start
 - `.env*` files are git-ignored
 - Use `.env.local` for local development variables
 - See `.gitignore` for all ignored patterns
+
+---
+
+## Resources
+
+- [Wokwi Documentation](https://docs.wokwi.com/)
+- [PlatformIO Documentation](https://docs.platformio.org/)
+- [ESP32-S3 Datasheet](https://www.espressif.com/en/products/socs/esp32s3)
+- [MQTT Protocol](https://mqtt.org/)
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Tailwind CSS](https://tailwindcss.com/docs)
+- [Leaflet.js](https://leafletjs.com/)

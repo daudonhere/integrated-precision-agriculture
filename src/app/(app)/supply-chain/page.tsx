@@ -20,15 +20,15 @@ const TRANSACTIONS = [
   { hash: '0x9i0j1k2l...', type: 'Sale', from: 'Retailer', to: 'Consumer', date: '2025-02-16 09:15', status: 'pending' },
 ];
 
-export default function BlockchainPage() {
+export default function SupplyChainPage() {
   const [activeTab, setActiveTab] = useState<'nft' | 'contracts' | 'transactions'>('nft');
 
   return (
     <div className="p-6">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">Blockchain</h1>
-          <p className="text-xs text-gray-500">Web3 integration & supply chain tracking</p>
+          <h1 className="text-lg font-semibold text-gray-900">Supply Tracking</h1>
+          <p className="text-xs text-gray-500">Web3 integration &amp; supply chain tracking</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">

@@ -21,14 +21,14 @@ const WEATHER_IMPACT = [
   { factor: 'Kelembaban', value: '65-75%', impact: 'neutral', description: 'Dalam batas toleransi' },
 ];
 
-export default function HarvestPage() {
+export default function ForecastingPage() {
   const [selectedCrop, setSelectedCrop] = useState<typeof HARVEST_PREDICTIONS[0] | null>(null);
 
   return (
     <div className="p-6">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">Harvest Prediction</h1>
+          <h1 className="text-lg font-semibold text-gray-900">Harvest Forecasting</h1>
           <p className="text-xs text-gray-500">AI-powered harvest forecasting</p>
         </div>
       </header>
@@ -94,7 +94,7 @@ export default function HarvestPage() {
                       </span>
                     </div>
                   </div>
-                  
+
                   <div className="mt-3 flex items-center gap-4">
                     <div className="flex-1">
                       <div className="flex items-center justify-between text-xs">

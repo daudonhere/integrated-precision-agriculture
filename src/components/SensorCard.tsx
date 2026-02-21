@@ -1,7 +1,5 @@
 'use client';
 
-import { SensorData } from '@/types/sensor';
-
 interface SensorCardProps {
   title: string;
   value: number | string;

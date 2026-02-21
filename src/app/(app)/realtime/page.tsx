@@ -16,55 +16,50 @@ const DEVICES = [
   },
 ];
 
-export default function RealtimePage() {
+export default function NodeMonitoringPage() {
   const router = useRouter();
   const { lastReceived } = useMqtt();
-  const [, forceUpdate] = useState(0);
+  const [secondsSinceLastReceived, setSecondsSinceLastReceived] = useState<number | null>(null);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      forceUpdate(n => n + 1);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const getDeviceStatus = () => {
-    if (lastReceived) {
-      const secondsSinceLastData = Math.floor((Date.now() - lastReceived.getTime()) / 1000);
-      if (secondsSinceLastData <= 30) {
-        return 'online';
+    const updateSeconds = () => {
+      if (!lastReceived) {
+        setSecondsSinceLastReceived(null);
+      } else {
+        setSecondsSinceLastReceived(Math.floor((Date.now() - lastReceived.getTime()) / 1000));
       }
-    }
-    return 'offline';
-  };
+    };
 
-  const deviceStatus = getDeviceStatus();
+    updateSeconds();
+    const interval = setInterval(updateSeconds, 1000);
+    return () => clearInterval(interval);
+  }, [lastReceived]);
+
+  const deviceStatus = secondsSinceLastReceived !== null && secondsSinceLastReceived <= 30 ? 'online' : 'offline';
+  const onlineCount = deviceStatus === 'online' ? 1 : 0;
+  const offlineCount = deviceStatus === 'offline' ? 1 : 0;
+
   const devices = DEVICES.map(d => ({
     ...d,
     status: deviceStatus,
-    lastSeen: deviceStatus === 'online' && lastReceived 
-      ? `${Math.floor((Date.now() - lastReceived.getTime()) / 1000)}s ago`
-      : lastReceived 
-        ? `${Math.floor((Date.now() - lastReceived.getTime()) / 1000)}s ago`
-        : 'Never',
+    lastSeen: secondsSinceLastReceived !== null ? `${secondsSinceLastReceived}s ago` : 'Never',
   }));
 
   return (
     <div className="p-6">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">Realtime Monitoring</h1>
+          <h1 className="text-lg font-semibold text-gray-900">Node Monitoring</h1>
           <p className="text-xs text-gray-500">Live sensor data from devices</p>
         </div>
         <div className="flex items-center gap-3 text-xs font-medium">
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-green-500"></span>
-            <span className="text-gray-700">{devices.filter(d => d.status === 'online').length} Online</span>
+            <span className="text-gray-700">{onlineCount} Online</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-red-500"></span>
-            <span className="text-gray-700">{devices.filter(d => d.status === 'offline').length} Offline</span>
+            <span className="text-gray-700">{offlineCount} Offline</span>
           </span>
         </div>
       </header>
@@ -77,7 +72,7 @@ export default function RealtimePage() {
               className={`group relative rounded-xl border p-4 transition-all ${
                 device.status === 'online'
                   ? 'cursor-pointer border-gray-200 bg-white hover:shadow-md hover:border-green-500'
-                  : 'border-gray-200 bg-gray-50 opacity-60'
+                  : 'cursor-not-allowed border-red-300 bg-white'
               }`}
               onClick={() => device.status === 'online' && router.push(`/realtime/${device.id}`)}
             >
@@ -126,7 +121,7 @@ export default function RealtimePage() {
               </div>
 
               <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-                <span>Last seen: {lastReceived ? `${Math.floor((Date.now() - lastReceived.getTime()) / 1000)}s ago` : device.lastSeen}</span>
+                <span>Last seen: {secondsSinceLastReceived !== null ? `${secondsSinceLastReceived}s ago` : device.lastSeen}</span>
               </div>
 
               <div className="mt-3">

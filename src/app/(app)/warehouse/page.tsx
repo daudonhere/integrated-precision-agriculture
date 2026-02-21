@@ -1,14 +1,14 @@
-export default function Dashboard() {
+export default function WarehousePage() {
   return (
     <div className="flex h-full items-center justify-center p-6">
       <div className="text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
           <svg className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
           </svg>
         </div>
         <h1 className="mb-2 text-xl font-semibold text-gray-900">Coming Soon</h1>
-        <p className="text-sm text-gray-500">Dashboard overview is under development</p>
+        <p className="text-sm text-gray-500">Warehouse location tracking is under development</p>
       </div>
     </div>
   );

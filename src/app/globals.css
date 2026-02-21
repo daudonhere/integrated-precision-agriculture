@@ -37,3 +37,45 @@ body {
 .animate-slide {
   animation: slide 1.5s infinite;
 }
+
+/* Leaflet marker - remove white dot */
+.marker-no-white-dot .leaflet-marker-icon {
+  background: transparent !important;
+}
+
+.marker-no-white-dot .leaflet-marker-icon::before {
+  content: none !important;
+}
+
+/* Leaflet cursor - always arrow, grabbing only when dragging map */
+.leaflet-container,
+.leaflet-grab,
+.leaflet-marker-draggable,
+.leaflet-interactive,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  cursor: default !important;
+}
+.leaflet-dragging .leaflet-container {
+  cursor: grabbing !important;
+}
+
+/* Search marker bounce animation */
+@keyframes bounce {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Polygon cursor pointer */
+.leaflet-interactive.cursor-pointer {
+  cursor: pointer !important;
+}

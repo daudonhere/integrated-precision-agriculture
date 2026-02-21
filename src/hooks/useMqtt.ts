@@ -108,12 +108,16 @@ export function useMqtt(): UseMqttReturn {
   }, []);
 
   useEffect(() => {
-    connect();
+    const initMqtt = async () => {
+      await connect();
+    };
+    initMqtt();
 
     return () => {
       disconnect();
     };
-  }, [connect, disconnect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     data,

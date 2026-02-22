@@ -42,7 +42,7 @@ export const useFarmStore = create<FarmState>()(
       setAreas: (areas) => set({ data: areas }),
     }),
     {
-      name: 'smartfarm-data',
+      name: 'smartfarm-land',
       storage: createJSONStorage(() => localStorage),
     }
   )

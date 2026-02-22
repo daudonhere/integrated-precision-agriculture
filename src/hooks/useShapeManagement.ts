@@ -14,12 +14,15 @@ export function useShapeManagement() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<number, { name?: string; varieties?: string; harvestDate?: string }>>({});
   const [isLoaded, setIsLoaded] = useState(false);
-  
+  const [shouldSync, setShouldSync] = useState(false);
+
   const { data: farmAreas, setAreas } = useFarmStore();
 
   useEffect(() => {
     if (!isLoaded && farmAreas && farmAreas.length > 0) {
-      const loadedShapes: DrawnShape[] = farmAreas.map((area) => ({
+      const uniqueShapes = Array.from(
+        new Map(farmAreas.map(a => [a.id, a])).values()
+      ).map((area) => ({
         id: area.id,
         name: area.name,
         varieties: area.varieties,
@@ -30,15 +33,16 @@ export function useShapeManagement() {
         points: area.points,
         color: area.color,
       }));
-      setShapes(loadedShapes);
+      setShapes(uniqueShapes);
       setIsLoaded(true);
     } else if (!isLoaded) {
+      setShapes([]);
       setIsLoaded(true);
     }
   }, [farmAreas, isLoaded]);
 
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && shouldSync) {
       const farmData: FarmArea[] = shapes.map((shape) => ({
         id: shape.id,
         name: shape.name,
@@ -51,14 +55,19 @@ export function useShapeManagement() {
         color: shape.color,
       }));
       setAreas(farmData);
+      setShouldSync(false);
     }
-  }, [shapes, isLoaded, setAreas]);
+  }, [shapes, isLoaded, shouldSync, setAreas]);
 
   const updateShapePoints = useCallback((shapeId: number, newPoints: [number, number][]) => {
     const area = calculateArea(newPoints);
-    setShapes(prev => prev.map(s =>
-      s.id === shapeId ? { ...s, points: newPoints, area } : s
-    ));
+    setShapes(prev => {
+      const updated = prev.map(s =>
+        s.id === shapeId ? { ...s, points: newPoints, area } : s
+      );
+      setTimeout(() => setShouldSync(true), 0);
+      return updated;
+    });
   }, []);
 
   const handleRectangleDraw = useCallback((points: [number, number][]) => {
@@ -70,19 +79,27 @@ export function useShapeManagement() {
     const defaultHarvestDate = new Date(creationDate.getFullYear(), creationDate.getMonth() + 1, creationDate.getDate());
     const harvestDateStr = defaultHarvestDate.toISOString().split('T')[0];
 
-    setShapes(prev => [...prev, {
-      id: shapeId,
-      name: `Area ${shapes.length + 1}`,
-      varieties: `Varieties ${shapes.length + 1}`,
-      harvestDate: harvestDateStr,
-      points,
-      color,
-      area,
-    }]);
+    setShapes(prev => {
+      const updated = [...prev, {
+        id: shapeId,
+        name: `Area ${shapes.length + 1}`,
+        varieties: `Varieties ${shapes.length + 1}`,
+        harvestDate: harvestDateStr,
+        points,
+        color,
+        area,
+      }];
+      setTimeout(() => setShouldSync(true), 0);
+      return updated;
+    });
   }, [shapes.length]);
 
   const handleUpdateShapeName = useCallback((shapeId: number, name: string) => {
-    setShapes(prev => prev.map(s => s.id === shapeId ? { ...s, name } : s));
+    setShapes(prev => {
+      const updated = prev.map(s => s.id === shapeId ? { ...s, name } : s);
+      setTimeout(() => setShouldSync(true), 0);
+      return updated;
+    });
     setSelectedShape(prev => prev && prev.id === shapeId ? { ...prev, name } : prev);
     if (name.trim()) {
       setValidationErrors(prev => {
@@ -94,7 +111,11 @@ export function useShapeManagement() {
   }, []);
 
   const handleUpdateShapeField = useCallback((shapeId: number, field: keyof Pick<DrawnShape, 'varieties' | 'harvestDate'>, value: string) => {
-    setShapes(prev => prev.map(s => s.id === shapeId ? { ...s, [field]: value } : s));
+    setShapes(prev => {
+      const updated = prev.map(s => s.id === shapeId ? { ...s, [field]: value } : s);
+      setTimeout(() => setShouldSync(true), 0);
+      return updated;
+    });
     setSelectedShape(prev => prev && prev.id === shapeId ? { ...prev, [field]: value } : prev);
     if (value.trim()) {
       setValidationErrors(prev => {
@@ -135,10 +156,14 @@ export function useShapeManagement() {
       if (!shape) return prev;
       const newPoints = [...shape.points];
       newPoints[vertexIndex] = [newLatLng.lat, newLatLng.lng];
-      updateShapePoints(shapeId, newPoints);
-      return prev;
+      const area = calculateArea(newPoints);
+      const updated = prev.map(s =>
+        s.id === shapeId ? { ...s, points: newPoints, area } : s
+      );
+      setTimeout(() => setShouldSync(true), 0);
+      return updated;
     });
-  }, [updateShapePoints]);
+  }, []);
 
   const handleAddVertex = useCallback((shapeId: number, edgeIndex: number, latlng: L.LatLng) => {
     setShapes(prev => {
@@ -146,13 +171,21 @@ export function useShapeManagement() {
       if (!shape) return prev;
       const newPoints = [...shape.points];
       newPoints.splice(edgeIndex + 1, 0, [latlng.lat, latlng.lng]);
-      updateShapePoints(shapeId, newPoints);
-      return prev;
+      const area = calculateArea(newPoints);
+      const updated = prev.map(s =>
+        s.id === shapeId ? { ...s, points: newPoints, area } : s
+      );
+      setTimeout(() => setShouldSync(true), 0);
+      return updated;
     });
-  }, [updateShapePoints]);
+  }, []);
 
   const handleDeleteShape = useCallback((shapeId: number) => {
-    setShapes(prev => prev.filter(s => s.id !== shapeId));
+    setShapes(prev => {
+      const updated = prev.filter(s => s.id !== shapeId);
+      setTimeout(() => setShouldSync(true), 0);
+      return updated;
+    });
     setSelectedShape(null);
     setShowDeleteConfirm(false);
     setValidationErrors(prev => {
@@ -179,11 +212,19 @@ export function useShapeManagement() {
       const elevation = elevationData.results?.[0]?.elevation || 0;
       const updateData: UpdateShapeData = { address, elevation };
 
-      setShapes(prev => prev.map(s => s.id === shapeId ? { ...s, ...updateData } : s));
+      setShapes(prev => {
+        const updated = prev.map(s => s.id === shapeId ? { ...s, ...updateData } : s);
+        setTimeout(() => setShouldSync(true), 0);
+        return updated;
+      });
       setSelectedShape(prev => prev && prev.id === shapeId ? { ...prev, ...updateData } : prev);
     } catch {
       const updateData: UpdateShapeData = { address: 'Failed to load', elevation: 0 };
-      setShapes(prev => prev.map(s => s.id === shapeId ? { ...s, ...updateData } : s));
+      setShapes(prev => {
+        const updated = prev.map(s => s.id === shapeId ? { ...s, ...updateData } : s);
+        setTimeout(() => setShouldSync(true), 0);
+        return updated;
+      });
       setSelectedShape(prev => prev && prev.id === shapeId ? { ...prev, ...updateData } : prev);
     }
   }, []);

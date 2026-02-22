@@ -6,10 +6,10 @@ import { CompassButton } from './CompassButton';
 interface ToolbarProps {
   showDrawer: boolean;
   onToggleDrawer: () => void;
-  isDrawingMode: boolean;
-  onToggleDrawingMode: () => void;
-  showMeasurementTooltip: boolean;
-  setShowMeasurementTooltip: (show: boolean) => void;
+  isDrawingMode?: boolean;
+  onToggleDrawingMode?: () => void;
+  showMeasurementTooltip?: boolean;
+  setShowMeasurementTooltip?: (show: boolean) => void;
   activeTheme: string;
   setActiveTheme: (theme: string) => void;
   showSatelliteTooltip: boolean;
@@ -23,14 +23,15 @@ interface ToolbarProps {
   showCompassTooltip: boolean;
   setShowCompassTooltip: (show: boolean) => void;
   getCardinalDirection: (rotation: number) => string;
+  hideDrawingControls?: boolean;
 }
 
 export function Toolbar({
   showDrawer,
   onToggleDrawer,
-  isDrawingMode,
+  isDrawingMode = false,
   onToggleDrawingMode,
-  showMeasurementTooltip,
+  showMeasurementTooltip = false,
   setShowMeasurementTooltip,
   activeTheme,
   setActiveTheme,
@@ -45,6 +46,7 @@ export function Toolbar({
   showCompassTooltip,
   setShowCompassTooltip,
   getCardinalDirection,
+  hideDrawingControls = false,
 }: ToolbarProps) {
   return (
     <div className="absolute top-4 right-4 flex flex-col gap-2 z-50">
@@ -55,24 +57,26 @@ export function Toolbar({
           </svg>
         </button>
       )}
-      <div className="relative">
-        <button
-          onClick={onToggleDrawingMode}
-          onMouseEnter={() => setShowMeasurementTooltip(true)}
-          onMouseLeave={() => setShowMeasurementTooltip(false)}
-          className={`rounded-lg p-2.5 shadow-lg transition-colors ${isDrawingMode ? 'bg-green-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-        >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth={2} />
-          </svg>
-        </button>
-        {showMeasurementTooltip && (
-          <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white whitespace-nowrap shadow-lg">
-            Measurement
-            <div className="absolute left-full top-1/2 -translate-y-1/2 -ml-1 border-4 border-transparent border-l-gray-900" />
-          </div>
-        )}
-      </div>
+      {!hideDrawingControls && onToggleDrawingMode && (
+        <div className="relative">
+          <button
+            onClick={onToggleDrawingMode}
+            onMouseEnter={() => setShowMeasurementTooltip?.(true)}
+            onMouseLeave={() => setShowMeasurementTooltip?.(false)}
+            className={`rounded-lg p-2.5 shadow-lg transition-colors ${isDrawingMode ? 'bg-green-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth={2} />
+            </svg>
+          </button>
+          {showMeasurementTooltip && setShowMeasurementTooltip && (
+            <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white whitespace-nowrap shadow-lg">
+              Measurement
+              <div className="absolute left-full top-1/2 -translate-y-1/2 -ml-1 border-4 border-transparent border-l-gray-900" />
+            </div>
+          )}
+        </div>
+      )}
       <LayerButton
         active={activeTheme === 'satellite'}
         onClick={() => setActiveTheme('satellite')}

@@ -79,7 +79,7 @@ integrated-precision-agriculture/
 │   │   └── index.ts          # Global state store
 │   └── types/                # TypeScript type definitions
 │       └── sensor.ts         # Sensor data interfaces
-├── smartfarm-node/           # ESP32 IoT firmware (PlatformIO)
+├── smartfarm-node*           # ESP32 IoT firmware (PlatformIO)
 │   ├── src/
 │   │   └── main.cpp          # Main firmware code
 │   ├── include/              # Header files
@@ -97,6 +97,8 @@ integrated-precision-agriculture/
 ├── postcss.config.mjs        # PostCSS configuration
 └── FASE.md                   # Development roadmap
 ```
+
+*Note: `smartfarm-node/` directory may be in a separate location or git-ignored.
 
 ### Path Aliases
 

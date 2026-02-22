@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 
-const MapComponent = dynamic(() => import('@/components/MapComponent'), {
+const MapComponent = dynamic(() => import('@/components/maps/MapContainer'), {
   ssr: false,
   loading: () => (
     <div className="flex h-full w-full items-center justify-center bg-gray-100">

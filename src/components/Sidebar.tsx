@@ -5,11 +5,11 @@ import { usePathname } from 'next/navigation';
 
 const menuItems = [
   { name: 'Overview', href: '/dashboard', icon: DashboardIcon },
-  { name: 'Farm Mapping', href: '/map', icon: MapIcon },
-  { name: 'Farm Analysis', href: '/land', icon: LandIcon },
+  { name: 'Farm Mapping', href: '/farm', icon: MapIcon },
+  { name: 'Farm Analysis', href: '/analysis', icon: LandIcon },
   { name: 'Harvest Forecasting', href: '/forecasting', icon: ForecastingIcon },
   { name: 'Warehouse Location', href: '/warehouse', icon: WarehouseIcon },
-  { name: 'Node Monitoring', href: '/realtime', icon: RealtimeIcon },
+  { name: 'Node Monitoring', href: '/node', icon: RealtimeIcon },
   { name: 'Supply Tracking', href: '/supply-chain', icon: SupplyChainIcon },
 ];
 

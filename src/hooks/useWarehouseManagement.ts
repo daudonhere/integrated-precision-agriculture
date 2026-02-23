@@ -93,6 +93,11 @@ export function useWarehouseManagement() {
   }, []);
 
   const handleFetchLocationData = useCallback(async (lat: number, lng: number, warehouseId: number) => {
+    const warehouse = warehouses.find(w => w.id === warehouseId);
+    if (warehouse && warehouse.location && warehouse.elevation) {
+      return;
+    }
+
     try {
       const addressResponse = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
@@ -114,7 +119,7 @@ export function useWarehouseManagement() {
       setWarehouses(prev => prev.map(w => w.id === warehouseId ? { ...w, location: 'Failed to load', elevation: 0 } : w));
       setSelectedWarehouse(prev => prev && prev.id === warehouseId ? { ...prev, location: 'Failed to load', elevation: 0 } : prev);
     }
-  }, []);
+  }, [warehouses]);
 
   const validateWarehouseFields = useCallback((warehouseId: number): boolean => {
     const warehouse = warehouses.find(w => w.id === warehouseId);

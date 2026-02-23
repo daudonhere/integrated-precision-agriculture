@@ -1,33 +1,97 @@
 'use client';
 
 import { Warehouse } from '@/store/warehouseStore';
+import { useRouteHistoryStore, RouteHistory } from '@/store/routeHistoryStore';
+import { FarmArea } from '@/store/farmStore';
+import { Motorbike, Truck, Van, Eye, Sprout } from 'lucide-react';
+
+const vehicleIcons = {
+  motorcycle: Motorbike,
+  car: Van,
+  truck: Truck,
+};
+
+const formatDistance = (meters: number): string => {
+  if (meters >= 1000) {
+    return `${(meters / 1000).toFixed(1)} km`;
+  }
+  return `${Math.round(meters)} m`;
+};
+
+const formatDuration = (seconds: number): string => {
+  const minutes = Math.round(seconds / 60);
+  if (minutes >= 60) {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
+  }
+  return `${minutes} min`;
+};
 
 interface WarehouseDialogProps {
   selectedWarehouse: Warehouse;
+  warehouses: Warehouse[];
+  farmAreas: FarmArea[];
   onClose: () => void;
   onUpdateWarehouse: (id: number, warehouse: Partial<Warehouse>) => void;
   onDeleteClick: () => void;
   validationErrors?: { name?: string; capacity?: string };
   onValidate?: () => boolean;
+  onShowRoute?: (fromWarehouse: Warehouse, to: Warehouse | FarmArea, vehicle: 'motorcycle' | 'car' | 'truck', isFarm: boolean) => void;
 }
 
-export function WarehouseDialog({ 
-  selectedWarehouse, 
-  onClose, 
-  onUpdateWarehouse, 
+export function WarehouseDialog({
+  selectedWarehouse,
+  warehouses,
+  farmAreas,
+  onClose,
+  onUpdateWarehouse,
   onDeleteClick,
   validationErrors,
   onValidate,
+  onShowRoute,
 }: WarehouseDialogProps) {
   const errors = validationErrors || {};
   const hasNameError = !!errors.name;
   const hasCapacityError = !!errors.capacity;
 
+  const { getRoutesFromWarehouse } = useRouteHistoryStore();
+  const routes = getRoutesFromWarehouse(selectedWarehouse.id);
+
+  const handleShowRoute = (route: RouteHistory) => {
+    if (!onShowRoute) return;
+
+    const isFromThisWarehouse = route.fromWarehouseId === selectedWarehouse.id;
+    const fromWarehouse = isFromThisWarehouse ? selectedWarehouse : warehouses.find(w => w.id === route.fromWarehouseId);
+    
+    if (route.isFarm) {
+      const farm = farmAreas.find(f => f.id === route.toWarehouseId);
+      if (fromWarehouse && farm) {
+        onShowRoute(fromWarehouse, farm, route.vehicle, true);
+        onClose();
+      }
+    } else {
+      const toWarehouse = isFromThisWarehouse ? warehouses.find(w => w.id === route.toWarehouseId) : selectedWarehouse;
+      if (fromWarehouse && toWarehouse) {
+        onShowRoute(fromWarehouse, toWarehouse, route.vehicle, false);
+        onClose();
+      }
+    }
+  };
+
+  const getRouteDestinationName = (route: RouteHistory): string => {
+    if (route.isFarm) {
+      const farm = farmAreas.find(f => f.id === route.toWarehouseId);
+      return farm ? `${farm.name} (Farm)` : route.toWarehouseName;
+    }
+    return route.toWarehouseName;
+  };
+
   return (
     <>
       <div className="absolute inset-0 bg-black/50 z-[500]" onClick={onClose} />
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-xl shadow-2xl z-[501] overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-xl shadow-2xl z-[501] overflow-hidden max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
           <h3 className="text-lg font-semibold text-gray-900">Warehouse Details</h3>
           <button onClick={onClose} className="rounded-lg p-1 hover:bg-gray-100">
             <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -35,7 +99,7 @@ export function WarehouseDialog({
             </svg>
           </button>
         </div>
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 overflow-y-auto flex-1">
           <div className="relative">
             <label className="block text-xs text-gray-500 mb-1">Warehouse Name</label>
             <input
@@ -57,7 +121,7 @@ export function WarehouseDialog({
             )}
           </div>
           <div className="relative">
-            <label className="block text-xs text-gray-500 mb-1">Capacity (units)</label>
+            <label className="block text-xs text-gray-500 mb-1">Capacity (Kg)</label>
             <input
               type="number"
               value={selectedWarehouse.capacity}
@@ -102,8 +166,52 @@ export function WarehouseDialog({
               <p className="text-xs text-gray-400 mb-2">Loading address...</p>
             )}
           </div>
+
+          {routes.length > 0 && (
+            <div className="border-t border-gray-200 pt-3">
+              <p className="text-xs font-semibold text-gray-700 mb-2">Distance & Time</p>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {routes.map((route) => {
+                  const VehicleIcon = vehicleIcons[route.vehicle];
+                  const destinationName = getRouteDestinationName(route);
+                  const isFarm = route.isFarm;
+
+                  return (
+                    <div
+                      key={route.id}
+                      className="flex items-center gap-2 rounded-lg bg-white border border-gray-200 p-2"
+                    >
+                      <div className="flex-shrink-0">
+                        {isFarm ? (
+                          <Sprout className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <VehicleIcon className="w-4 h-4 text-green-600" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-gray-900 truncate">
+                          {destinationName}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {formatDistance(route.distance)} • {formatDuration(route.duration)}
+                        </p>
+                      </div>
+                      {onShowRoute && (
+                        <button
+                          onClick={() => handleShowRoute(route)}
+                          className="flex-shrink-0 rounded-lg bg-green-600 p-1.5 text-white hover:bg-green-700 transition-colors"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
-        <div className="flex p-4 border-t border-gray-200 gap-2">
+        <div className="flex p-4 border-t border-gray-200 gap-2 flex-shrink-0">
           <button 
             onClick={() => {
               if (onValidate && onValidate()) {

@@ -17,13 +17,12 @@ export function connectMqtt(): Promise<SensorData | null> {
       });
 
       client.on('connect', () => {
-        console.log('Connected to MQTT broker');
         client?.subscribe(MQTT_TOPIC, (err) => {
           if (err) {
             console.error('Failed to subscribe:', err);
             resolve(null);
           } else {
-            console.log('Subscribed to:', MQTT_TOPIC);
+            resolve(null);
           }
         });
       });
@@ -46,7 +45,6 @@ export function connectMqtt(): Promise<SensorData | null> {
       });
 
       client.on('offline', () => {
-        console.log('MQTT client offline');
       });
 
       setTimeout(() => {

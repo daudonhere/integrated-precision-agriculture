@@ -195,6 +195,11 @@ export function useShapeManagement() {
   }, []);
 
   const handleFetchLocationData = useCallback(async (lat: number, lng: number, shapeId: number) => {
+    const shape = shapes.find(s => s.id === shapeId);
+    if (shape && shape.address && shape.elevation) {
+      return;
+    }
+
     try {
       const addressResponse = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
@@ -226,7 +231,7 @@ export function useShapeManagement() {
       });
       setSelectedShape(prev => prev && prev.id === shapeId ? { ...prev, ...updateData } : prev);
     }
-  }, []);
+  }, [shapes]);
 
   return {
     shapes,

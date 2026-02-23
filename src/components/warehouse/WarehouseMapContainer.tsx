@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -16,6 +15,9 @@ import { useMapSearch, useWarehouseManagement } from '@/hooks';
 import { SearchSuggestion } from '@/types/map';
 import { MAP_THEMES } from '@/utils/mapConstants';
 import { Warehouse } from '@/store/warehouseStore';
+import { FarmArea } from '@/store/farmStore';
+import { useFarmStore } from '@/store/farmStore';
+import { Polygon } from 'react-leaflet';
 
 delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -40,6 +42,7 @@ export default function WarehouseMapComponent() {
   const [activeTheme, setActiveTheme] = useState('satellite');
   const [showDrawer, setShowDrawer] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([-6.92148, 106.92617]);
+  const [showMeasurementTooltip, setShowMeasurementTooltip] = useState(false);
   const [showSatelliteTooltip, setShowSatelliteTooltip] = useState(false);
   const [showTerrainTooltip, setShowTerrainTooltip] = useState(false);
   const [showStreetsTooltip, setShowStreetsTooltip] = useState(false);
@@ -51,6 +54,8 @@ export default function WarehouseMapComponent() {
   const [showRoutesDialog, setShowRoutesDialog] = useState(false);
   const [selectedWarehouseForRoute, setSelectedWarehouseForRoute] = useState<Warehouse | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
 
   const mapRef = useRef<L.Map | null>(null);
 
@@ -76,6 +81,8 @@ export default function WarehouseMapComponent() {
     handleDeleteWarehouse,
     handleFetchLocationData,
   } = useWarehouseManagement();
+
+  const { data: farmAreas } = useFarmStore();
 
   const currentTheme = MAP_THEMES.find(t => t.id === activeTheme) || MAP_THEMES[0];
 
@@ -104,12 +111,15 @@ export default function WarehouseMapComponent() {
   }, [handleSearchKeyDown, handleSelectSuggestionWithNav, searchSuggestions]);
 
   const handleMapClick = useCallback((e: L.LeafletMouseEvent) => {
+    if (isDrawingMode) {
+      handleAddWarehouse(e.latlng.lat, e.latlng.lng);
+      return;
+    }
     if (selectedWarehouse) {
       setSelectedWarehouse(null);
       return;
     }
-    handleAddWarehouse(e.latlng.lat, e.latlng.lng);
-  }, [selectedWarehouse, setSelectedWarehouse, handleAddWarehouse]);
+  }, [isDrawingMode, handleAddWarehouse, selectedWarehouse, setSelectedWarehouse]);
 
   const handleMapReady = useCallback((map: L.Map) => {
     mapRef.current = map;
@@ -143,92 +153,94 @@ export default function WarehouseMapComponent() {
     }
   }, []);
 
-  const formatDistance = (meters: number): string => {
-    if (meters >= 1000) {
-      return `${(meters / 1000).toFixed(1)} km`;
-    }
-    return `${Math.round(meters)} m`;
-  };
+  const handleShowRouteFromHistory = useCallback((fromWarehouse: Warehouse, to: Warehouse | FarmArea, vehicle: 'motorcycle' | 'car' | 'truck', isFarm: boolean) => {
+    const vehicleProfiles: Record<string, string> = {
+      motorcycle: 'driving-car',
+      car: 'driving-car',
+      truck: 'driving-hgv',
+    };
 
-  const formatDuration = (seconds: number): string => {
-    const minutes = Math.round(seconds / 60);
-    if (minutes >= 60) {
-      const hours = Math.floor(minutes / 60);
-      const mins = minutes % 60;
-      return `${hours}h ${mins}m`;
-    }
-    return `${minutes} min`;
-  };
+    const profile = vehicleProfiles[vehicle];
+    const toLat = isFarm 
+      ? (to as FarmArea).points.reduce((acc, p) => [acc[0] + p[0], acc[1] + p[1]], [0, 0]).map(v => v / (to as FarmArea).points.length)
+      : [(to as Warehouse).lat, (to as Warehouse).lng];
+    const toLng = toLat[1];
 
-  const RouteLabel = ({ routeData, map, containerRef }: { routeData: { coordinates: [number, number][]; distance: number; duration: number }; map: L.Map; containerRef: HTMLDivElement | null }) => {
-    const [, forceUpdate] = useState(0);
+    fetch(
+      `${process.env.NEXT_PUBLIC_ORS_BASE_URL}/directions/${profile}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': process.env.NEXT_PUBLIC_ORS_API_KEY || '',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          coordinates: [
+            [toLng, toLat[0]],
+            [fromWarehouse.lng, fromWarehouse.lat],
+          ],
+        }),
+      }
+    )
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch route');
+        return res.json();
+      })
+      .then((data) => {
+        const route = data.routes[0];
+        const geometry = route.geometry;
 
-    useEffect(() => {
-      const updatePosition = () => {
-        forceUpdate(n => n + 1);
-      };
+        const decodePolyline = (encoded: string): [number, number][] => {
+          const coordinates: [number, number][] = [];
+          let index = 0;
+          let lat = 0;
+          let lng = 0;
 
-      map.on('move', updatePosition);
-      map.on('zoom', updatePosition);
-      return () => {
-        map.off('move', updatePosition);
-        map.off('zoom', updatePosition);
-      };
-    }, [map]);
+          while (index < encoded.length) {
+            let b: number;
+            let shift = 0;
+            let result = 0;
 
-    if (!containerRef || routeData.coordinates.length < 2) return null;
+            do {
+              b = encoded.charCodeAt(index++) - 63;
+              result |= (b & 0x1f) << shift;
+              shift += 5;
+            } while (b >= 0x20);
 
-    const midIndex = Math.floor(routeData.coordinates.length / 2);
-    const midPoint = routeData.coordinates[midIndex];
-    const containerPoint = map.latLngToContainerPoint(midPoint);
+            const dlat = (result & 1) ? ~(result >> 1) : (result >> 1);
+            lat += dlat;
 
-    const prevIndex = Math.max(0, midIndex - 5);
-    const nextIndex = Math.min(routeData.coordinates.length - 1, midIndex + 5);
-    const prevPoint = routeData.coordinates[prevIndex];
-    const nextPoint = routeData.coordinates[nextIndex];
+            shift = 0;
+            result = 0;
+            do {
+              b = encoded.charCodeAt(index++) - 63;
+              result |= (b & 0x1f) << shift;
+              shift += 5;
+            } while (b >= 0x20);
 
-    const dx = nextPoint[1] - prevPoint[1];
-    const dy = nextPoint[0] - prevPoint[0];
-    const length = Math.sqrt(dx * dx + dy * dy);
+            const dlng = (result & 1) ? ~(result >> 1) : (result >> 1);
+            lng += dlng;
 
-    const offsetX = length === 0 ? 0 : (-dy / length) * 25;
-    const offsetY = length === 0 ? -25 : (dx / length) * 25;
+            coordinates.push([lat / 1e5, lng / 1e5]);
+          }
 
-    return createPortal(
-      <div
-        style={{
-          position: 'absolute',
-          left: containerPoint.x + offsetX,
-          top: containerPoint.y + offsetY,
-          transform: 'translate(-50%, -50%)',
-          zIndex: 50,
-          backgroundColor: 'white',
-          border: '2px solid #16a34a',
-          borderRadius: '8px',
-          padding: '6px 10px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-          pointerEvents: 'none',
-        }}
-      >
-        <div className="flex gap-2 text-xs font-medium whitespace-nowrap">
-          <div className="flex items-center gap-1">
-            <svg className="w-3.5 h-3.5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
-            <span className="text-gray-700">{formatDistance(routeData.distance)}</span>
-          </div>
-          <div className="w-px h-3 bg-gray-300" />
-          <div className="flex items-center gap-1">
-            <svg className="w-3.5 h-3.5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-gray-700">{formatDuration(routeData.duration)}</span>
-          </div>
-        </div>
-      </div>,
-      containerRef
-    );
-  };
+          return coordinates;
+        };
+
+        const decodedCoords = decodePolyline(geometry);
+        const distance = route.summary.distance;
+        const duration = route.summary.duration;
+
+        setRouteData({ coordinates: decodedCoords, distance, duration });
+
+        if (mapRef.current && decodedCoords.length > 0) {
+          const bounds = L.latLngBounds(decodedCoords.map(coord => [coord[0], coord[1]]));
+          mapRef.current.fitBounds(bounds, { padding: [80, 80], maxZoom: 14 });
+        }
+      })
+      .catch(() => {
+      });
+  }, []);
 
   return (
     <div className="flex h-full flex-col" ref={containerRef}>
@@ -242,7 +254,8 @@ export default function WarehouseMapComponent() {
           zoomControl={false}
           dragging={true}
         >
-          <MapController onMapReady={handleMapReady} isDrawingMode={false} onRotationChange={setMapRotation} />
+          <style>{`${isDrawingMode ? '.leaflet-container { cursor: crosshair !important; }' : ''}`}</style>
+          <MapController onMapReady={handleMapReady} isDrawingMode={isDrawingMode} onRotationChange={setMapRotation} />
           <TileLayer attribution={currentTheme.attribution} url={currentTheme.url} />
 
           {warehouses.map((warehouse) => (
@@ -254,16 +267,21 @@ export default function WarehouseMapComponent() {
             />
           ))}
 
+          {routeData && farmAreas && farmAreas.map((area) => (
+            <Polygon
+              key={area.id}
+              positions={area.points}
+              pathOptions={{ color: area.color, fillColor: area.color, fillOpacity: 0.3, weight: 2 }}
+            />
+          ))}
+
           <SearchMarker position={searchMarker} />
 
           {routeData && (
-            <>
-              <Polyline
-                positions={routeData.coordinates}
-                pathOptions={{ color: '#16a34a', weight: 5, opacity: 0.8 }}
-              />
-              {mapRef.current && <RouteLabel routeData={routeData} map={mapRef.current} containerRef={containerRef.current} />}
-            </>
+            <Polyline
+              positions={routeData.coordinates}
+              pathOptions={{ color: '#16a34a', weight: 5, opacity: 0.8 }}
+            />
           )}
         </MapContainer>
 
@@ -286,6 +304,10 @@ export default function WarehouseMapComponent() {
         <Toolbar
           showDrawer={showDrawer}
           onToggleDrawer={() => setShowDrawer(true)}
+          isDrawingMode={isDrawingMode}
+          onToggleDrawingMode={() => setIsDrawingMode(!isDrawingMode)}
+          showMeasurementTooltip={showMeasurementTooltip}
+          setShowMeasurementTooltip={setShowMeasurementTooltip}
           activeTheme={activeTheme}
           setActiveTheme={setActiveTheme}
           showSatelliteTooltip={showSatelliteTooltip}
@@ -299,7 +321,7 @@ export default function WarehouseMapComponent() {
           showCompassTooltip={showCompassTooltip}
           setShowCompassTooltip={setShowCompassTooltip}
           getCardinalDirection={getCardinalDirection}
-          hideDrawingControls
+          hideDrawingControls={false}
         />
       </div>
 
@@ -318,9 +340,12 @@ export default function WarehouseMapComponent() {
       {selectedWarehouse && (
         <WarehouseDialog
           selectedWarehouse={selectedWarehouse}
+          warehouses={warehouses}
+          farmAreas={farmAreas || []}
           onClose={() => setSelectedWarehouse(null)}
           onUpdateWarehouse={handleUpdateWarehouse}
           onDeleteClick={() => setShowDeleteConfirm(true)}
+          onShowRoute={handleShowRouteFromHistory}
         />
       )}
 
@@ -328,6 +353,7 @@ export default function WarehouseMapComponent() {
         show={showRoutesDialog}
         warehouse={selectedWarehouseForRoute}
         warehouses={warehouses}
+        farmAreas={farmAreas || []}
         onClose={() => {
           setShowRoutesDialog(false);
           setSelectedWarehouseForRoute(null);

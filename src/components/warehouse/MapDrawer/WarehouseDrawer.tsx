@@ -60,7 +60,7 @@ export function WarehouseDrawer({ showDrawer, onClose, warehouses, onNavigateToW
                     <span className="text-sm font-semibold text-gray-900">{warehouse.name}</span>
                   </div>
                   <p className="text-xs text-gray-600 mb-1">
-                    <span className="font-medium">Capacity:</span> {warehouse.capacity.toLocaleString()} units
+                    <span className="font-medium">Capacity:</span> {warehouse.capacity.toLocaleString()} Kg
                   </p>
                   {warehouse.location && <p className="text-xs text-gray-500 line-clamp-2">{formatAddress(warehouse.location)}</p>}
                   <div className="flex gap-2 mt-2">

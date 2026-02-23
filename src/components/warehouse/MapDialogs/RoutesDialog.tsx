@@ -4,11 +4,14 @@ import { useState } from 'react';
 import { Warehouse } from '@/store/warehouseStore';
 import { formatAddress } from '@/utils/formatAddress';
 import { Motorbike, Truck, Van } from 'lucide-react';
+import { useRouteHistoryStore, RouteHistory } from '@/store/routeHistoryStore';
+import { FarmArea } from '@/store/farmStore';
 
 interface RoutesDialogProps {
   show: boolean;
   warehouse: Warehouse | null;
   warehouses: Warehouse[];
+  farmAreas: FarmArea[];
   onClose: () => void;
   onShowRoute: (route: { coordinates: [number, number][]; distance: number; duration: number }) => void;
 }
@@ -21,11 +24,14 @@ const vehicleProfiles: Record<VehicleType, string> = {
   truck: 'driving-hgv',
 };
 
-export function RoutesDialog({ show, warehouse, warehouses, onClose, onShowRoute }: RoutesDialogProps) {
+export function RoutesDialog({ show, warehouse, warehouses, farmAreas, onClose, onShowRoute }: RoutesDialogProps) {
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleType>('car');
   const [selectedDestination, setSelectedDestination] = useState<number | null>(null);
+  const [selectedDestinationType, setSelectedDestinationType] = useState<'warehouse' | 'farm'>('warehouse');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { addRoute } = useRouteHistoryStore();
 
   if (!show || !warehouse) return null;
 
@@ -40,8 +46,26 @@ export function RoutesDialog({ show, warehouse, warehouses, onClose, onShowRoute
   const handleShowRoute = async () => {
     if (!selectedDestination) return;
 
-    const destination = warehouses.find(w => w.id === selectedDestination);
-    if (!destination) return;
+    let destination: { id: number; name: string; lat: number; lng: number; points?: [number, number][] };
+    
+    if (selectedDestinationType === 'warehouse') {
+      const dest = warehouses.find(w => w.id === selectedDestination);
+      if (!dest) return;
+      destination = { ...dest, points: [[dest.lat, dest.lng]] };
+    } else {
+      const dest = farmAreas.find(f => f.id === selectedDestination);
+      if (!dest) return;
+      const centerPoint = dest.points.reduce((acc, point) => [acc[0] + point[0], acc[1] + point[1]], [0, 0]);
+      const lat = centerPoint[0] / dest.points.length;
+      const lng = centerPoint[1] / dest.points.length;
+      destination = {
+        id: dest.id,
+        name: dest.name,
+        lat,
+        lng,
+        points: dest.points
+      };
+    }
 
     setIsLoading(true);
     setError(null);
@@ -77,6 +101,21 @@ export function RoutesDialog({ show, warehouse, warehouses, onClose, onShowRoute
       const distance = route.summary.distance;
       const duration = route.summary.duration;
 
+      const routeHistory: RouteHistory = {
+        id: Date.now(),
+        fromWarehouseId: warehouse.id,
+        toWarehouseId: destination.id,
+        fromWarehouseName: warehouse.name,
+        toWarehouseName: destination.name,
+        vehicle: selectedVehicle,
+        distance,
+        duration,
+        createdAt: Date.now(),
+        coordinates: decodedCoords,
+        isFarm: selectedDestinationType === 'farm',
+      };
+
+      addRoute(routeHistory);
       onShowRoute({ coordinates: decodedCoords, distance, duration });
       onClose();
     } catch {
@@ -170,19 +209,46 @@ export function RoutesDialog({ show, warehouse, warehouses, onClose, onShowRoute
           </div>
           <div>
             <select
-              value={selectedDestination || ''}
-              onChange={(e) => setSelectedDestination(e.target.value ? Number(e.target.value) : null)}
-              disabled={otherWarehouses.length === 0}
+              value={selectedDestinationType}
+              onChange={(e) => setSelectedDestinationType(e.target.value as 'warehouse' | 'farm')}
+              disabled={otherWarehouses.length === 0 && farmAreas.length === 0}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 disabled:bg-gray-50 disabled:text-gray-400"
             >
-              {otherWarehouses.length === 0 ? (
-                <option value="">No other warehouse</option>
+              <option value="warehouse">Warehouse</option>
+              <option value="farm">Farm Area</option>
+            </select>
+          </div>
+          <div>
+            <select
+              value={selectedDestination || ''}
+              onChange={(e) => setSelectedDestination(e.target.value ? Number(e.target.value) : null)}
+              disabled={
+                (selectedDestinationType === 'warehouse' && otherWarehouses.length === 0) ||
+                (selectedDestinationType === 'farm' && farmAreas.length === 0)
+              }
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 disabled:bg-gray-50 disabled:text-gray-400"
+            >
+              {selectedDestinationType === 'warehouse' ? (
+                otherWarehouses.length === 0 ? (
+                  <option value="">No other warehouse</option>
+                ) : (
+                  <>
+                    <option value="">Select destination warehouse...</option>
+                    {otherWarehouses.map((w) => (
+                      <option key={w.id} value={w.id}>
+                        {w.name} - {w.location ? formatAddress(w.location) : 'No address'}
+                      </option>
+                    ))}
+                  </>
+                )
+              ) : farmAreas.length === 0 ? (
+                <option value="">No farm areas</option>
               ) : (
                 <>
-                  <option value="">Select destination warehouse...</option>
-                  {otherWarehouses.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name} - {w.location ? formatAddress(w.location) : 'No address'}
+                  <option value="">Select destination farm...</option>
+                  {farmAreas.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name} - {f.location ? formatAddress(f.location) : f.varieties}
                     </option>
                   ))}
                 </>

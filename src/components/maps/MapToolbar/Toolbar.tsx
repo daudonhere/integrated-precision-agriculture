@@ -1,5 +1,6 @@
 'use client';
 
+import { ReactNode } from 'react';
 import { LayerButton } from './LayerButton';
 import { CompassButton } from './CompassButton';
 
@@ -10,6 +11,8 @@ interface ToolbarProps {
   onToggleDrawingMode?: () => void;
   showMeasurementTooltip?: boolean;
   setShowMeasurementTooltip?: (show: boolean) => void;
+  measurementLabel?: string;
+  measurementIcon?: ReactNode;
   activeTheme: string;
   setActiveTheme: (theme: string) => void;
   showSatelliteTooltip: boolean;
@@ -33,6 +36,8 @@ export function Toolbar({
   onToggleDrawingMode,
   showMeasurementTooltip = false,
   setShowMeasurementTooltip,
+  measurementLabel = 'Measurement',
+  measurementIcon,
   activeTheme,
   setActiveTheme,
   showSatelliteTooltip,
@@ -65,13 +70,15 @@ export function Toolbar({
             onMouseLeave={() => setShowMeasurementTooltip?.(false)}
             className={`rounded-lg p-2.5 shadow-lg transition-colors ${isDrawingMode ? 'bg-green-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
+            {measurementIcon || (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth={2} />
+              </svg>
+            )}
           </button>
           {showMeasurementTooltip && setShowMeasurementTooltip && (
             <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white whitespace-nowrap shadow-lg">
-              Add Warehouse
+              {measurementLabel}
               <div className="absolute left-full top-1/2 -translate-y-1/2 -ml-1 border-4 border-transparent border-l-gray-900" />
             </div>
           )}

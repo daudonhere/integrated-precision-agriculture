@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import { createPortal } from 'react-dom';
+import { MapContainer, TileLayer, Marker, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -10,7 +11,7 @@ import { SearchMarker } from '../maps/MapMarkers';
 import { SearchBox, NavigationOverlay } from '../maps/MapSearch';
 import { Toolbar } from '../maps/MapToolbar';
 import { WarehouseDrawer } from './MapDrawer';
-import { WarehouseDialog, DeleteConfirmDialog } from './MapDialogs';
+import { WarehouseDialog, DeleteConfirmDialog, RoutesDialog } from './MapDialogs';
 import { useMapSearch, useWarehouseManagement } from '@/hooks';
 import { SearchSuggestion } from '@/types/map';
 import { MAP_THEMES } from '@/utils/mapConstants';
@@ -46,6 +47,10 @@ export default function WarehouseMapComponent() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [searchMarker, setSearchMarker] = useState<{ lat: number; lon: number } | null>(null);
   const [showCompassTooltip, setShowCompassTooltip] = useState(false);
+  const [routeData, setRouteData] = useState<{ coordinates: [number, number][]; distance: number; duration: number } | null>(null);
+  const [showRoutesDialog, setShowRoutesDialog] = useState(false);
+  const [selectedWarehouseForRoute, setSelectedWarehouseForRoute] = useState<Warehouse | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const mapRef = useRef<L.Map | null>(null);
 
@@ -104,7 +109,7 @@ export default function WarehouseMapComponent() {
       return;
     }
     handleAddWarehouse(e.latlng.lat, e.latlng.lng);
-  }, [selectedWarehouse, handleAddWarehouse]);
+  }, [selectedWarehouse, setSelectedWarehouse, handleAddWarehouse]);
 
   const handleMapReady = useCallback((map: L.Map) => {
     mapRef.current = map;
@@ -125,8 +130,108 @@ export default function WarehouseMapComponent() {
     }
   }, []);
 
+  const handleOpenRoutesDialog = useCallback((warehouse: Warehouse) => {
+    setSelectedWarehouseForRoute(warehouse);
+    setShowRoutesDialog(true);
+  }, []);
+
+  const handleShowRoute = useCallback((route: { coordinates: [number, number][]; distance: number; duration: number }) => {
+    setRouteData(route);
+    if (mapRef.current && route.coordinates.length > 0) {
+      const bounds = L.latLngBounds(route.coordinates.map(coord => [coord[0], coord[1]]));
+      mapRef.current.fitBounds(bounds, { padding: [80, 80], maxZoom: 14 });
+    }
+  }, []);
+
+  const formatDistance = (meters: number): string => {
+    if (meters >= 1000) {
+      return `${(meters / 1000).toFixed(1)} km`;
+    }
+    return `${Math.round(meters)} m`;
+  };
+
+  const formatDuration = (seconds: number): string => {
+    const minutes = Math.round(seconds / 60);
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return `${hours}h ${mins}m`;
+    }
+    return `${minutes} min`;
+  };
+
+  const RouteLabel = ({ routeData, map, containerRef }: { routeData: { coordinates: [number, number][]; distance: number; duration: number }; map: L.Map; containerRef: HTMLDivElement | null }) => {
+    const [, forceUpdate] = useState(0);
+
+    useEffect(() => {
+      const updatePosition = () => {
+        forceUpdate(n => n + 1);
+      };
+
+      map.on('move', updatePosition);
+      map.on('zoom', updatePosition);
+      return () => {
+        map.off('move', updatePosition);
+        map.off('zoom', updatePosition);
+      };
+    }, [map]);
+
+    if (!containerRef || routeData.coordinates.length < 2) return null;
+
+    const midIndex = Math.floor(routeData.coordinates.length / 2);
+    const midPoint = routeData.coordinates[midIndex];
+    const containerPoint = map.latLngToContainerPoint(midPoint);
+
+    const prevIndex = Math.max(0, midIndex - 5);
+    const nextIndex = Math.min(routeData.coordinates.length - 1, midIndex + 5);
+    const prevPoint = routeData.coordinates[prevIndex];
+    const nextPoint = routeData.coordinates[nextIndex];
+
+    const dx = nextPoint[1] - prevPoint[1];
+    const dy = nextPoint[0] - prevPoint[0];
+    const length = Math.sqrt(dx * dx + dy * dy);
+
+    const offsetX = length === 0 ? 0 : (-dy / length) * 25;
+    const offsetY = length === 0 ? -25 : (dx / length) * 25;
+
+    return createPortal(
+      <div
+        style={{
+          position: 'absolute',
+          left: containerPoint.x + offsetX,
+          top: containerPoint.y + offsetY,
+          transform: 'translate(-50%, -50%)',
+          zIndex: 50,
+          backgroundColor: 'white',
+          border: '2px solid #16a34a',
+          borderRadius: '8px',
+          padding: '6px 10px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          pointerEvents: 'none',
+        }}
+      >
+        <div className="flex gap-2 text-xs font-medium whitespace-nowrap">
+          <div className="flex items-center gap-1">
+            <svg className="w-3.5 h-3.5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+            <span className="text-gray-700">{formatDistance(routeData.distance)}</span>
+          </div>
+          <div className="w-px h-3 bg-gray-300" />
+          <div className="flex items-center gap-1">
+            <svg className="w-3.5 h-3.5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-gray-700">{formatDuration(routeData.duration)}</span>
+          </div>
+        </div>
+      </div>,
+      containerRef
+    );
+  };
+
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" ref={containerRef}>
       <div className="relative flex flex-1 overflow-hidden">
         <MapContainer
           center={mapCenter}
@@ -150,6 +255,16 @@ export default function WarehouseMapComponent() {
           ))}
 
           <SearchMarker position={searchMarker} />
+
+          {routeData && (
+            <>
+              <Polyline
+                positions={routeData.coordinates}
+                pathOptions={{ color: '#16a34a', weight: 5, opacity: 0.8 }}
+              />
+              {mapRef.current && <RouteLabel routeData={routeData} map={mapRef.current} containerRef={containerRef.current} />}
+            </>
+          )}
         </MapContainer>
 
         <div className="absolute top-4 left-4 z-50 w-80">
@@ -193,6 +308,7 @@ export default function WarehouseMapComponent() {
         onClose={() => setShowDrawer(false)}
         warehouses={warehouses}
         onNavigateToWarehouse={handleNavigateToWarehouse}
+        onOpenRoutesDialog={handleOpenRoutesDialog}
       />
 
       {showDeleteConfirm && selectedWarehouse && (
@@ -207,6 +323,17 @@ export default function WarehouseMapComponent() {
           onDeleteClick={() => setShowDeleteConfirm(true)}
         />
       )}
+
+      <RoutesDialog
+        show={showRoutesDialog}
+        warehouse={selectedWarehouseForRoute}
+        warehouses={warehouses}
+        onClose={() => {
+          setShowRoutesDialog(false);
+          setSelectedWarehouseForRoute(null);
+        }}
+        onShowRoute={handleShowRoute}
+      />
     </div>
   );
 }

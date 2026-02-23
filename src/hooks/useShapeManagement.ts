@@ -6,7 +6,6 @@ import { calculateArea } from '../utils/calculateArea';
 import { DrawnShape, UpdateShapeData } from '@/types/map';
 import { POLYGON_COLORS } from '../utils/mapConstants';
 import { useFarmStore, FarmArea } from '@/store/farmStore';
-import { formatAddress } from '../utils/formatAddress';
 
 export function useShapeManagement() {
   const [shapes, setShapes] = useState<DrawnShape[]>([]);

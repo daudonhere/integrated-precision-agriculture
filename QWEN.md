@@ -55,30 +55,38 @@ integrated-precision-agriculture/
 │   ├── app/                  # App Router pages & layouts
 │   │   ├── (app)/            # Main app layout with sidebar
 │   │   │   ├── dashboard/    # Overview dashboard
-│   │   │   ├── realtime/     # Real-time monitoring
-│   │   │   ├── map/          # Land monitoring map
-│   │   │   ├── devices/      # Device management
-│   │   │   ├── soil/         # Soil analysis
-│   │   │   ├── harvest/      # Harvest prediction
-│   │   │   ├── blockchain/   # Web3 integration
-│   │   │   └── settings/     # App settings
+│   │   │   ├── farm/         # Farm mapping
+│   │   │   ├── analysis/     # Farm analysis
+│   │   │   ├── forecasting/  # Harvest forecasting
+│   │   │   ├── warehouse/    # Warehouse location
+│   │   │   ├── node/         # Node monitoring
+│   │   │   └── supply-chain/ # Supply tracking
+│   │   ├── api/              # API routes
 │   │   ├── globals.css       # Global styles with Tailwind
 │   │   ├── layout.tsx        # Root layout component
-│   │   └── page.tsx          # Home page (redirects to /dashboard)
+│   │   └── page.tsx          # Home page
 │   ├── components/           # Reusable React components
+│   │   ├── maps/             # Map-related components
+│   │   ├── warehouse/        # Warehouse components
 │   │   ├── Sidebar.tsx       # Navigation sidebar
 │   │   ├── SensorCard.tsx    # Sensor display card
 │   │   ├── StatusBadge.tsx   # Status indicator
-│   │   ├── ProgressBar.tsx   # Progress bar component
-│   │   └── MapComponent.tsx  # Leaflet map component
+│   │   └── ProgressBar.tsx   # Progress bar component
 │   ├── hooks/                # Custom React hooks
-│   │   └── useMqtt.ts        # MQTT connection hook
+│   │   ├── useMqtt.ts        # MQTT connection hook
+│   │   ├── useMapSearch.ts   # Map search functionality
+│   │   ├── useShapeManagement.ts  # Shape/polygon management
+│   │   └── useWarehouseManagement.ts
 │   ├── lib/                  # Utility libraries
 │   │   └── mqtt.ts           # MQTT client utilities
 │   ├── store/                # Zustand state management
 │   │   └── index.ts          # Global state store
-│   └── types/                # TypeScript type definitions
-│       └── sensor.ts         # Sensor data interfaces
+│   ├── types/                # TypeScript type definitions
+│   │   └── sensor.ts         # Sensor data interfaces
+│   └── utils/                # Utility functions
+│       ├── calculateArea.ts  # Polygon area calculation
+│       ├── formatAddress.ts  # Address formatting
+│       └── mapConstants.ts   # Map configuration
 ├── smartfarm-node*           # ESP32 IoT firmware (PlatformIO)
 │   ├── src/
 │   │   └── main.cpp          # Main firmware code
@@ -277,15 +285,14 @@ The ESP32 node publishes JSON data to `daud/smartfarm/data`:
 
 | Route | Description |
 |-------|-------------|
-| `/` | Redirects to `/dashboard` |
-| `/dashboard` | Overview with sensor cards and status |
-| `/realtime` | Real-time sensor monitoring |
-| `/map` | Land monitoring with Leaflet maps |
-| `/devices` | IoT device management |
-| `/soil` | Soil analysis and nutrient tracking |
-| `/harvest` | Harvest prediction and tracking |
-| `/blockchain` | Web3/NFT integration |
-| `/settings` | Application settings |
+| `/` | Home page |
+| `/dashboard` | Overview dashboard |
+| `/farm` | Farm mapping with Leaflet |
+| `/analysis` | Farm analysis |
+| `/forecasting` | Harvest forecasting |
+| `/warehouse` | Warehouse location management |
+| `/node` | IoT node monitoring |
+| `/supply-chain` | Supply chain tracking |
 
 ---
 

@@ -8,9 +8,21 @@ interface WarehouseDrawerProps {
   onClose: () => void;
   warehouses: Warehouse[];
   onNavigateToWarehouse: (warehouse: Warehouse) => void;
+  onOpenRoutesDialog: (warehouse: Warehouse) => void;
 }
 
-export function WarehouseDrawer({ showDrawer, onClose, warehouses, onNavigateToWarehouse }: WarehouseDrawerProps) {
+export function WarehouseDrawer({ showDrawer, onClose, warehouses, onNavigateToWarehouse, onOpenRoutesDialog }: WarehouseDrawerProps) {
+  const handleRoutesClick = (warehouse: Warehouse, e: React.MouseEvent) => {
+    e.stopPropagation();
+    onOpenRoutesDialog(warehouse);
+    onClose();
+  };
+
+  const handleMapsClick = (warehouse: Warehouse, e: React.MouseEvent) => {
+    e.stopPropagation();
+    onNavigateToWarehouse(warehouse);
+  };
+
   if (!showDrawer) return null;
 
   return (
@@ -18,7 +30,7 @@ export function WarehouseDrawer({ showDrawer, onClose, warehouses, onNavigateToW
       <div className="absolute inset-0 bg-black/50 z-50" onClick={onClose} />
       <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl z-50 flex flex-col">
         <style>{`@keyframes slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } } .animate-slide-in { animation: slide-in 0.3s ease-out; }`}</style>
-        
+
         <div className="flex-shrink-0 border-b border-gray-200 p-4 bg-gray-50">
           <div className="flex items-center justify-between">
             <div>
@@ -51,13 +63,19 @@ export function WarehouseDrawer({ showDrawer, onClose, warehouses, onNavigateToW
                     <span className="font-medium">Capacity:</span> {warehouse.capacity.toLocaleString()} units
                   </p>
                   {warehouse.location && <p className="text-xs text-gray-500 line-clamp-2">{formatAddress(warehouse.location)}</p>}
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-                    <span className="text-xs text-gray-400">
-                      {warehouse.elevation ? `${warehouse.elevation.toFixed(1)}m elev` : 'Location'}
-                    </span>
-                    <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={(e) => handleRoutesClick(warehouse, e)}
+                      className="flex-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 transition-colors"
+                    >
+                      Routes
+                    </button>
+                    <button
+                      onClick={(e) => handleMapsClick(warehouse, e)}
+                      className="flex-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors"
+                    >
+                      Maps
+                    </button>
                   </div>
                 </div>
               ))
